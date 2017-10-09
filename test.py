@@ -1,4 +1,4 @@
 #!/usr/bin/env python
-from managers import GitManager
+from managers.git import *
 manager = GitManager()
-manager.get_repository("git@github.com:tcstang/social-cr.git")
+manager.get_repository("git@github.com:tcstang/test-repository.git")

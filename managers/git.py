@@ -91,7 +91,7 @@ class GitManager:
 
     @classmethod
     def _split_remote(cls, remote):
-        """ splits the remote gir url up by delimiters and returns list """
+        """ splits the remote git url up by delimiters and returns list """
 
         delimiter_regex = re.compile('[/|:]')
         return re.split(delimiter_regex, remote)

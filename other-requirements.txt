@@ -1,2 +1,3 @@
-# non-python deps
+# non-pip deps
 git version 2.13.5 (Apple Git-94)
+Python 3.6.2
