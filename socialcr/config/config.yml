@@ -1,0 +1,6 @@
+---
+repo_path: repositories
+
+logging:
+    level: DEBUG
+    output_file: logs/socialcr.log

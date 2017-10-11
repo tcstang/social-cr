@@ -1,2 +1,7 @@
 ---
 repo_path: repositories
+
+logging:
+    level: debug
+    path: log.social-cr
+    strategy: rotation

@@ -5,9 +5,17 @@ import yaml
 import os
 import hashlib
 import re
-from helpers.decorators import Singleton
+import logging
+from logging import *
+import pdb
 
-class GitManager:
+class Manager:
+    """ Abstract class for managers """
+    
+    def __init__(self):
+        self._logger = None
+
+class GitManager(Manager):
     """
     Mediator for accessing git functionality in Social CR
 
@@ -15,15 +23,15 @@ class GitManager:
     """
     
     def __init__(self):
-        """ lazy instance of git """
-        self.__git = None
+        self._git = None
+        self._logger = LogManager(self)
 
     def git(self):
         """ instantiate git wrapper if not yet created and return it """
-        if self.__git == None:
-            self.__git = git.Git()
+        if self._git == None:
+            self._git = git.Git()
 
-        return self.__git
+        return self._git
 
     def get_repository(self, remote):
         """
@@ -32,10 +40,13 @@ class GitManager:
         If the repository does not exist in the location, it will be created.
         If it does exist, instantiates and returns a git.Repo object
         """
+
         repo_hash = GitManager.get_hash(remote)
         repo_path = os.path.join(ConfigManager.get_repo_path(), repo_hash)
+        self.logger.debug(f"Path to find repository is: {repo_path}")
 
         if os.path.isdir(repo_path):
+            log.debug("Found existing repo")
             return git.Repo(repo_path)
         
         return git.Repo.clone_from(remote, repo_path)
@@ -54,6 +65,7 @@ class GitManager:
         >>> GitManager.get_username("git@github.com:tcstang/social-cr.git")
         'tcstang'
         """
+
         return cls._split_remote(remote)[-2]
 
     @classmethod
@@ -70,6 +82,7 @@ class GitManager:
         >>> GitManager.get_repo_name("git@github.com:tcstang/social-cr.git")
         'social-cr'
         """
+
         return cls._split_remote(remote)[-1].replace(".git", "")
 
     @classmethod
@@ -86,6 +99,7 @@ class GitManager:
         >>> GitManager.get_host("git@github.com:tcstang/social-cr.git")
         'github.com'
         """
+
         return cls._split_remote(remote)[-3].replace("git@", "")
 
 
@@ -111,6 +125,8 @@ class GitManager:
         repo_uid = f'{git_host}{username}{repo_name}'.encode('utf-8')
         return hashlib.sha256(repo_uid).hexdigest().upper()
 
+
+
 class ConfigManager:
     """
     Mediator for getting and setting config
@@ -119,13 +135,68 @@ class ConfigManager:
     @staticmethod
     def get_repo_path():
         """ retrieve the directory that stores repositories """
+
         return ConfigManager.get_config()["repo_path"]
 
     @staticmethod
     def get_config():
         """ create the yml parser and return it """
+
         with open('config/config.yml', 'r') as config_file:
             return yaml.load(config_file)
+
+class LogManager:
+    """
+    LogManager is the interface between Social CR and the logging library
+
+    It also serves as a facade to the logging library. In future iterations,
+    we can add methods to swap out and use different Loggers at runtime.
+    """
+
+    def __init__(self, obj):
+        self.logger = SimpleLoggerFactory.get_logger(type(obj).__name__)
+
+    def debug(self, message):
+        self.logger.debug(message)
+
+    def info(self, message):
+        self.logger.info(message)
+
+    def warn(self, message):
+        self.logger.warn(message)
+
+    def error(self, message):
+        self.logger.error(message)
+
+class LogFactory:
+    """ Abstract factory for creating loggers """
+
+    @classmethod
+    def get_logger(cls, name):
+        raise NotImplementedError( "Should have implemented this" )
+
+class SimpleLoggerFactory(LogFactory):
+    """ A simple, typical, static, logger """
+
+    @classmethod
+    def get_logger(cls, name):
+        logger = logging.getLogger(name)
+        logger.setLevel(logging.DEBUG)
+
+        file_handler = logging.FileHandler(ConfigManager.get_config()["logging"]["output_file"])
+        file_handler.setLevel(logging.DEBUG)
+        
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.ERROR)
+
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        console_handler.setFormatter(formatter)
+
+        logger.addHandler(console_handler)
+        logger.addHandler(file_handler)
+
+        return logger
 
 if __name__ == "__main__":
     import doctest
